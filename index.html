@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chat en tiempo real</title>
+  <style>
+    body {
+      font-family: Arial;
+      max-width: 500px;
+      margin: auto;
+      background: #f4f4f4;
+      padding: 20px;
+    }
+    #chat {
+      border: 1px solid #ccc;
+      height: 400px;
+      overflow-y: scroll;
+      padding: 10px;
+      background: white;
+    }
+    .msg {
+      margin-bottom: 10px;
+    }
+    .msg img {
+      max-width: 200px;
+      display: block;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h2>💬WHAPPSENA</h2>
+  <div id="chat"></div>
+
+  <input type="text" id="msg" placeholder="Escribe tu mensaje...">
+  <input type="file" id="img">
+  <button onclick="send()">Enviar</button>
+
+  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+  <script>
+    const socket = io("http://localhost:3000"); // Esto se cambiará por la URL de Render cuando lo subamos
+
+    const chat = document.getElementById("chat");
+
+    socket.on("chat-message", data => {
+      const div = document.createElement("div");
+      div.classList.add("msg");
+
+      if (data.text) div.innerText = data.text;
+
+      if (data.image) {
+        const img = document.createElement("img");
+        img.src = data.image;
+        div.appendChild(img);
+      }
+
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    });
+
+    function send() {
+      const text = document.getElementById("msg").value;
+      const image = document.getElementById("img").files[0];
+
+      if (image) {
+        const form = new FormData();
+        form.append("image", image);
+
+        fetch("http://localhost:3000/upload", {
+          method: "POST",
+          body: form
+        })
+        .then(res => res.json())
+        .then(data => {
+          socket.emit("chat-message", { image: data.url });
+        });
+      }
+
+      if (text) {
+        socket.emit("chat-message", { text });
+      }
+
+      document.getElementById("msg").value = "";
+      document.getElementById("img").value = "";
+    }
+  </script>
+</body>
+</html>
